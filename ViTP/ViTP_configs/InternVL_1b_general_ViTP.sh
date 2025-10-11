@@ -26,7 +26,7 @@ TIMESTAMP=$(date +%m%d_%H%M)
 
 NEW_SCRIPT_NAME="${SCRIPT_NAME}_${TIMESTAMP}.sh"
 
-DATA_PATH="rs_ft_configs/ft_data_general.json"
+DATA_PATH="ViTP_configs/ft_data_general.json"
 
 cp "$0" "${OUTPUT_DIR}/${NEW_SCRIPT_NAME}"
 cp "$DATA_PATH" "${OUTPUT_DIR}/dataset_configs_${TIMESTAMP}.json"
