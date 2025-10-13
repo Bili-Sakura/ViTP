@@ -165,7 +165,7 @@ if __name__ == '__main__':
         name='mmrotate',
         version=get_version(),
         description='Rotation Detection Toolbox and Benchmark',
-        long_description=readme(),
+        # long_description=readme(),
         long_description_content_type='text/markdown',
         author='MMRotate Authors',
         author_email='openmmlab@gmail.com',

@@ -167,7 +167,7 @@ if __name__ == '__main__':
         name='opencd',
         version=get_version(),
         description='Open Change Detection Toolbox and Benchmark',
-        long_description=readme(),
+        # long_description=readme(),
         long_description_content_type='text/markdown',
         author='Open-CD Contributors',
         author_email='likyoo@qq.com',
