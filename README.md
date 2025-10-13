@@ -183,7 +183,7 @@ cd ..
 ```
 cd ../mmcv
 python setup.py install
-cd mmrotate
+cd ../mmrotate
 ```
 - Install mmrotate:
 ```
@@ -234,7 +234,7 @@ cd ..
 ```
 cd ../mmcv
 python setup.py install
-cd mmseg
+cd ../mmseg
 ```
 - Install mmsegmentation:
 ```
