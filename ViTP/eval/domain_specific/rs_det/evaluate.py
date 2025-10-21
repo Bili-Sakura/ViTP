@@ -10,16 +10,55 @@ import torch
 from internvl.model import load_model_and_tokenizer
 from internvl.train.dataset import build_transform, dynamic_preprocess
 from PIL import Image
+Image.MAX_IMAGE_PIXELS = None
 from tqdm import tqdm
-
+import jsonlines
 ds_collections = {
     'DIOR_RSVG': {
-        'root': 'InternVL-Domain-Adaptation-Data/val/dior_rsvg_test.json',
-        'max_new_tokens': 200,
+        'root' : '../../InternRS_data/val_annos_vg/dior_rsvg_test.jsonl',
+        # 'root': 'InternVL-Domain-Adaptation-Data/val/dior_rsvg_test.json',
+        'max_new_tokens': 1024,
         'min_new_tokens': 1,
         'type': 'test',
-        'image_root': 'InternVL-Domain-Adaptation-Data/images/'
+        'image_root' : '../../InternRS_data/InternRS_data/',
+        # 'image_root': 'InternVL-Domain-Adaptation-Data/images/'
     },
+    'DIOR_RSVG_100': {
+        'root' : '../../InternRS_data/val_annos_vg/val_dior_rsvg_test_100.json',
+        # 'root': 'InternVL-Domain-Adaptation-Data/val/dior_rsvg_test.json',
+        'max_new_tokens': 1024,
+        'min_new_tokens': 1,
+        'type': 'test',
+        'image_root' : '../../InternRS_data/val_dataset/',
+        # 'image_root': 'InternVL-Domain-Adaptation-Data/images/'
+    },
+    'geochat':{
+        'root' : '../../InternRS_data/val_annos_vg/geochat_test.jsonl',
+        # 'root': 'InternVL-Domain-Adaptation-Data/val/dior_rsvg_test.json',
+        'max_new_tokens': 1024,
+        'min_new_tokens': 1,
+        'type': 'test',
+        'image_root' : '../../InternRS_data/InternRS_data/',
+        # 'image_root': 'InternVL-Domain-Adaptation-Data/images/'       
+    },
+    'rsvg':{
+        'root' : '../../InternRS_data/val_annos_vg/rsvg_test.jsonl',
+        # 'root': 'InternVL-Domain-Adaptation-Data/val/dior_rsvg_test.json',
+        'max_new_tokens': 1024,
+        'min_new_tokens': 1,
+        'type': 'test',
+        'image_root' : '../../InternRS_data/InternRS_data/',
+        # 'image_root': 'InternVL-Domain-Adaptation-Data/images/'       
+    },
+    'vrsbench':{
+        'root' : '../../InternRS_data/val_annos_vg/vrsbench_test.jsonl',
+        # 'root': 'InternVL-Domain-Adaptation-Data/val/dior_rsvg_test.json',
+        'max_new_tokens': 1024,
+        'min_new_tokens': 1,
+        'type': 'test',
+        'image_root' : '../../InternRS_data/InternRS_data/',
+        # 'image_root': 'InternVL-Domain-Adaptation-Data/images/'       
+    }
 }
 
 
@@ -27,18 +66,21 @@ def collate_fn(batches, tokenizer):
     pixel_values = torch.cat([_['pixel_values'] for _ in batches], dim=0)
     questions = [_['question'] for _ in batches]
     answers = [_['answer'] for _ in batches]
-    image_sizes = [_['image_size'] for _ in batches]
+    images = [_['image'] for _ in batches]
 
-    return pixel_values, questions, answers, image_sizes
+    return pixel_values, questions, answers, images
 
 
 class GroundingDataset(torch.utils.data.Dataset):
 
     def __init__(self, root, image_root, prompt='', input_size=224, dynamic_image_size=False,
                  use_thumbnail=False, max_num=6):
-
-        with open(root, 'r') as f:
-            self.ann_data = json.load(f)
+        self.ann_data=[]
+        with jsonlines.open(root, "r") as reader:
+            for obj in reader:
+                self.ann_data.append(obj)
+        # with open(root, 'r') as f:
+        #     self.ann_data = json.load(f)
         self.image_root = image_root
         self.input_size = input_size
         self.dynamic_image_size = dynamic_image_size
@@ -54,9 +96,9 @@ class GroundingDataset(torch.utils.data.Dataset):
         data_item = self.ann_data[idx]
         # index = data_item["id"]
         image = data_item['image']
-        question = self.prompt + data_item['prompt']
-        answer = data_item['bbox']
-        image_size_ = data_item['size']
+        question = data_item['conversations'][0]['value']#self.prompt + data_item['prompt']
+        answer = data_item['conversations'][1]['value'].split('</box>')[0].split('<box>')[-1]#['bbox']
+        # image_size_ = [800,800]#data_item['size']
         # catetory = self.df.iloc[idx]['category']
         # l2_catetory = self.df.iloc[idx]['l2-category']
         image = Image.open(os.path.join(self.image_root, image)).convert('RGB')
@@ -73,7 +115,7 @@ class GroundingDataset(torch.utils.data.Dataset):
             'question': question,
             'pixel_values': pixel_values,
             'answer': answer,
-            'image_size': image_size_
+            'image': data_item['image']
         }
 
 
@@ -150,7 +192,7 @@ def evaluate_chat_model():
         )
 
         outputs = []
-        for _, (pixel_values, questions, answers, image_sizes) in tqdm(enumerate(dataloader)):
+        for _, (pixel_values, questions, answers, images) in tqdm(enumerate(dataloader)):
             pixel_values = pixel_values.to(torch.bfloat16).cuda()
             generation_config = dict(
                 num_beams=args.num_beams,
@@ -159,21 +201,29 @@ def evaluate_chat_model():
                 do_sample=True if args.temperature > 0 else False,
                 temperature=args.temperature,
             )
-            pred = model.chat(
-                tokenizer=tokenizer,
-                pixel_values=pixel_values,
-                question=questions[0],
-                generation_config=generation_config
-            )
-            preds = [pred]
+            try:
+                pred = model.chat(
+                    tokenizer=tokenizer,
+                    pixel_values=pixel_values,
+                    question=questions[0],
+                    generation_config=generation_config
+                )
+                preds = [pred]
 
-            for question, pred, answer, image_size_ in zip(questions, preds, answers, image_sizes):
+                for question, pred, answer, image in zip(questions, preds, answers, images):
+                    outputs.append({
+                        'question': question,
+                        'answer': pred,
+                        'gt_answers': answer,
+                        'image': image
+                    })
+            except:
                 outputs.append({
-                    'question': question,
-                    'answer': pred,
-                    'gt_answers': answer,
-                    'image_size': image_size_
-                })
+                        'question': question,
+                        'answer': '<ref>None</ref><box>[[0, 0, 1, 1]]</box>',
+                        'gt_answers': answer,
+                        'image': image
+                    })
 
         torch.distributed.barrier()
 
@@ -188,11 +238,13 @@ def evaluate_chat_model():
             print(f'Evaluating {ds_name} ...')
             time_prefix = time.strftime('%y%m%d%H%M%S', time.localtime())
             results_file = f'{ds_name}_{time_prefix}.json'
-            output_path = os.path.join(args.out_dir, results_file)
+            output_path = os.path.join(args.out_dir , f_dir , results_file)
             with open(output_path, 'w') as f:
                 json.dump({'outputs': merged_outputs}, f, indent=4)
             print('Results saved to {}'.format(output_path))
-            cmd = f'python eval/rs_det/caculate.py --output_file {output_path}'
+            #fixed
+            cmd = f'python eval/domain_specific/rs_det/caculate.py --output_file {output_path}'
+            #cmd = f'python eval/rs_det/caculate.py --output_file {output_path}'
             print(cmd)
             os.system(cmd)
 
@@ -216,6 +268,10 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.out_dir):
         os.makedirs(args.out_dir, exist_ok=True)
+    
+    f_dir=args.checkpoint.split('/')[-1]
+    if not os.path.exists(os.path.join(args.out_dir,f_dir)):
+        os.makedirs(os.path.join(args.out_dir,f_dir), exist_ok=True)
 
     args.datasets = args.datasets.split(',')
     print('datasets:', args.datasets)
@@ -245,6 +301,6 @@ if __name__ == '__main__':
     print(f'[test] use_thumbnail: {use_thumbnail}')
     print(f'[test] max_num: {args.max_num}')
 
-    prompt_prefix = 'Detect '
+    prompt_prefix = '<det>Detect '
     # prompt_prefix =  "Please provide the bounding box coordinate of the region this sentence describes: "
     evaluate_chat_model()

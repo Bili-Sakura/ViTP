@@ -1,3 +1,7 @@
+import sys
+sys.path.append('/root/data-fs/InternVL')
+
+
 import argparse
 import itertools
 import json
@@ -14,25 +18,31 @@ from tqdm import tqdm
 
 ds_collections = {
     'RSVQA_H_TEST2': {
-        'root': 'InternVL-Domain-Adaptation-Data/val/rsvqa_h_test_2_instruct.json',
+        #'root': 'InternVL-Domain-Adaptation-Data/val/rsvqa_h_test_2_instruct.json',
+        'root': '/root/data-fs/InternRS_data/val_annos/rsvqa_h_test_2_instruct.json',
         'max_new_tokens': 50,
         'min_new_tokens': 1,
         'type': 'test',
-        'image_root': 'InternVL-Domain-Adaptation-Data/images/RSVQA-H/Data'
+        #'image_root': 'InternVL-Domain-Adaptation-Data/images/RSVQA-H/Data'
+        'image_root': '/root/data-fs/InternRS_data/val_dataset/RSVQAHR/Data'
     },
     'RSVQA_H_TEST1': {
-        'root': 'InternVL-Domain-Adaptation-Data/val//rsvqa_h_test_1_instruct.json',
+        #'root': 'InternVL-Domain-Adaptation-Data/val/rsvqa_h_test_1_instruct.json',
+        'root': '/root/data-fs/InternRS_data/val_annos/rsvqa_h_test_1_instruct.json',
         'max_new_tokens': 50,
         'min_new_tokens': 1,
         'type': 'test',
-        'image_root': 'InternVL-Domain-Adaptation-Data/images/RSVQA-H/Data'
+        #'image_root': 'InternVL-Domain-Adaptation-Data/images/RSVQA-H/Data'
+        'image_root': '/root/data-fs/InternRS_data/val_dataset/RSVQAHR/Data'
     },
     'RSVQA_L': {
-        'root': 'InternVL-Domain-Adaptation-Data/val/rsvqa_l_test_instruct.json',
+        #'root': 'InternVL-Domain-Adaptation-Data/val/rsvqa_l_test_instruct.json',
+        'root': '/root/data-fs/InternRS_data/val_annos/val_rsvqa_l_test_instruct.json',
         'max_new_tokens': 50,
         'min_new_tokens': 1,
         'type': 'test',
-        'image_root': 'InternVL-Domain-Adaptation-Data/images/RSVQA_L/Images_LR'
+        #'image_root': 'InternVL-Domain-Adaptation-Data/images/RSVQA_L/Images_LR'
+        'image_root': '/root/data-fs/InternRS_data/val_dataset/RSVQALR/Data'
     },
 }
 
@@ -207,12 +217,14 @@ def evaluate_chat_model():
             print(f'Evaluating {ds_name} ...')
             time_prefix = time.strftime('%y%m%d%H%M%S', time.localtime())
             results_file = f'{ds_name}_{time_prefix}.json'
-            output_path = os.path.join(args.out_dir, results_file)
+            f_dir=args.checkpoint.split('/')[-1]
+            output_path = os.path.join(args.out_dir,f_dir, results_file)
             with open(output_path, 'w') as f:
                 json.dump(merged_outputs, f, indent=4)
-            cmd = f'python eval/rs_vqa/score.py --output_file {output_path}'
+            cmd = f'python eval/domain_specific/rs_vqa/score.py --output_file {output_path}'
             print(cmd)
             os.system(cmd)
+        
 
 
 if __name__ == '__main__':

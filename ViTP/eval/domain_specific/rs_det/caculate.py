@@ -45,17 +45,28 @@ def box_iou(boxes1, boxes2):
     return iou, union
 
 
-def transform_bbox(bbox, image_size):
+def transform_bbox(bbox):
+    # x_center,y_center,w,h=bbox
+    # x1=x_center - w/2
+    # y1=y_center - w/2
+    # x2=x_center + h/2
+    # y2=y_center + h/2
     x1, y1, x2, y2 = bbox
-    W, H = image_size
-    x1 = min(max(x1 / 1000 * W, 0), W)
-    x2 = min(max(x2 / 1000 * W, 0), W)
-    y1 = min(max(y1 / 1000 * H, 0), H)
-    y2 = min(max(y2 / 1000 * H, 0), H)
+    # W, H = image_size
+    # x1 = min(max(x1 / 1000 * W, 0), W)
+    # x2 = min(max(x2 / 1000 * W, 0), W)
+    # y1 = min(max(y1 / 1000 * H, 0), H)
+    # y2 = min(max(y2 / 1000 * H, 0), H)
 
     return [x1, y1, x2, y2]
 
-
+def convert_bbox(bbox):
+    x1,y1,x2,y2=bbox
+    x_center = round((x1 + x2) / 2.0)
+    y_center = round((y1 + y2) / 2.0)
+    w = x2 - x1
+    h = y2 - y1
+    return [x_center,y_center,w,h]
 def evaluation_metrics(outputs):
     correct = 0
     incorrect = 0
@@ -63,9 +74,13 @@ def evaluation_metrics(outputs):
     # pattern = r'\[*\[(.*?),(.*?),(.*?),(.*?)\]\]*'
     # print(outputs)
     for output in outputs:
-        bbox = output['gt_answers']
-        image_size = output['image_size']
+        bbox = json.loads(output['gt_answers'])[0]
+        # print(bbox)
+        # image_size = output['image_size']
         pred = output['answer']
+        if '\n' in pred:
+            pred = pred.split('\n')[1]
+        # output['gt_answers_center']=convert_bbox(output['gt_answers'])
         # 查找所有匹配
         matches = re.findall(pattern, pred)
         if len(matches) > 1:
@@ -76,8 +91,9 @@ def evaluation_metrics(outputs):
         else:
             try:
                 pred_bbox = json.loads(matches[0])
-                pred_bbox = transform_bbox(pred_bbox[0], image_size)
+                pred_bbox = transform_bbox(pred_bbox[0])
                 iou_score = calculate_iou(pred_bbox, bbox)
+                
                 if iou_score > 0.5:
                     correct = correct + 1
                 else:
