@@ -97,13 +97,13 @@ Remote Sensing Change Detection
 - [S2Looking](https://github.com/S2Looking/Dataset)
 
 Medical Imaging Semantic Segmentation
-- [AMOS2022](https://hf-mirror.com/GreatBird/ViTP/resolve/main/pretrain_data/images/AMOS2022.zip?download=true)
+- [AMOS2022](https://huggingface.co.com/GreatBird/ViTP/resolve/main/pretrain_data/images/AMOS2022.zip?download=true)
 
 
-- [BraTS2021](https://hf-mirror.com/GreatBird/ViTP/resolve/main/pretrain_data/images/brats.zip?download=true)
+- [BraTS2021](https://huggingface.co.com/GreatBird/ViTP/resolve/main/pretrain_data/images/brats.zip?download=true)
 
 
-- [CovidQUEx](https://hf-mirror.com/GreatBird/ViTP/resolve/main/pretrain_data/images/covid_quex.zip?download=true)
+- [CovidQUEx](https://huggingface.co.com/GreatBird/ViTP/resolve/main/pretrain_data/images/covid_quex.zip?download=true)
 
 
 
