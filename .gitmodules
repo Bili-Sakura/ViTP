@@ -1,0 +1,9 @@
+[submodule "libs/transformers"]
+	path = libs/transformers
+	url = https://ghfast.top/https://github.com/huggingface/transformers
+
+[submodule "libs/mmcv"]
+	path = libs/mmcv
+	url = https://ghfast.top/https://github.com/open-mmlab/mmcv
+
+
