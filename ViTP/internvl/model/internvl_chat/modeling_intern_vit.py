@@ -308,8 +308,8 @@ class InternVisionEncoder(nn.Module):
     def __init__(self, config: InternVisionConfig):
         super().__init__()
         self.config = config
-        # stochastic depth decay rule
-        dpr = [x.item() for x in torch.linspace(0, config.drop_path_rate, config.num_hidden_layers)]
+        # stochastic depth decay rule (use CPU to avoid meta tensor .item() errors)
+        dpr = [x.item() for x in torch.linspace(0, config.drop_path_rate, config.num_hidden_layers, device='cpu')]
         self.layers = nn.ModuleList([
             InternVisionEncoderLayer(config, dpr[idx]) for idx in range(config.num_hidden_layers)])
         self.gradient_checkpointing = True
@@ -366,6 +366,12 @@ class InternVisionModel(PreTrainedModel):
     _supports_flash_attn_2 = True
     config_class = InternVisionConfig
     _no_split_modules = ['InternVisionEncoderLayer']
+    _tied_weights_keys = []  # Vision encoder has no tied weights
+
+    @property
+    def all_tied_weights_keys(self):
+        """Compat for newer transformers; vision encoder has no tied weights."""
+        return {}
 
     def __init__(self, config: InternVisionConfig):
         super().__init__(config)

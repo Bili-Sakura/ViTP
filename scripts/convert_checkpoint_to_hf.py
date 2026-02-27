@@ -227,22 +227,53 @@ def convert_checkpoint(
     if config_overrides:
         config.update(config_overrides)
 
+    # Add auto_map for HF loading without ViTP repo (trust_remote_code=True)
+    config["auto_map"] = {
+        "AutoConfig": "configuration_intern_vit.InternVisionConfig",
+        "AutoModel": "modeling_intern_vit.InternVisionModel",
+    }
+
     # Save config.json
     config_path = output_dir / "config.json"
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
     print(f"  Saved config to {config_path}")
 
+    # Save preprocessor_config.json for AutoImageProcessor (native HF preprocessing)
+    image_size = config.get("image_size", 448)
+    preprocessor_config = {
+        "do_resize": True,
+        "size": image_size,
+        "do_center_crop": True,
+        "crop_size": image_size,
+        "do_normalize": True,
+        "image_mean": [0.485, 0.456, 0.406],
+        "image_std": [0.229, 0.224, 0.225],
+        "feature_extractor_type": "CLIPFeatureExtractor",
+        "resample": 3,
+    }
+    preprocessor_path = output_dir / "preprocessor_config.json"
+    with open(preprocessor_path, "w", encoding="utf-8") as f:
+        json.dump(preprocessor_config, f, indent=2)
+    print(f"  Saved preprocessor_config to {preprocessor_path}")
+
     # Save model.safetensors
     model_path = output_dir / "model.safetensors"
     safetensors_save_file(vision_dict, model_path)
     print(f"  Saved weights to {model_path}")
 
+    # Copy modeling code so HF can load without ViTP repo (trust_remote_code=True)
+    internvl_chat = Path(__file__).resolve().parent.parent / "ViTP" / "internvl" / "model" / "internvl_chat"
+    for name in ("configuration_intern_vit.py", "modeling_intern_vit.py"):
+        src = internvl_chat / name
+        if src.exists():
+            import shutil
+            shutil.copy2(src, output_dir / name)
+            print(f"  Copied {name}")
+
     print(f"\nDone. Load and run inference with:")
-    print(f"  import sys")
-    print(f"  sys.path.insert(0, 'ViTP')")
-    print(f"  from internvl.model.internvl_chat import InternVisionModel")
-    print(f"  model = InternVisionModel.from_pretrained('{output_dir}')")
+    print(f"  from transformers import AutoModel")
+    print(f"  model = AutoModel.from_pretrained('{output_dir}', trust_remote_code=True)")
     print(f"  # Forward: outputs = model(pixel_values=images)")
 
 
